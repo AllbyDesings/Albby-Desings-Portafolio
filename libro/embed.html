@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Libro Embed</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      color: #645745;
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        linear-gradient(rgba(20, 10, 28, 0.08), rgba(20, 10, 28, 0.08)),
+        url("../images/fodo de libros.webp") center / cover no-repeat;
+    }
+
+    .book-frame {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      padding: clamp(1rem, 3.4vw, 2.8rem);
+    }
+
+    .page-wrapper {
+      position: relative;
+      width: min(60vw, 720px);
+      max-width: calc(100% - 2rem);
+      aspect-ratio: 13 / 9;
+      filter: drop-shadow(0 30px 34px rgba(24, 10, 4, 0.46));
+      animation: slideUp 900ms ease forwards;
+      transform: translateY(36px);
+      opacity: 0;
+    }
+
+    @keyframes slideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .click-shield {
+      position: absolute;
+      inset: 0;
+      z-index: 10000;
+      pointer-events: all;
+      background: transparent;
+    }
+
+    .flip-page {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      perspective: 2000px;
+      pointer-events: none;
+      transition: transform 1s ease;
+    }
+
+    .flip-page.first-page {
+      transform: translateX(-25%);
+    }
+
+    .flip-page.last-page {
+      transform: translateX(25%);
+    }
+
+    .front-page,
+    .back-page {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      cursor: pointer;
+      pointer-events: all;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+      transition: transform 1.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .front-page {
+      transform-origin: left;
+      transform: rotateY(0deg);
+    }
+
+    .back-page {
+      transform-origin: right;
+      transform: rotateY(180deg);
+      pointer-events: none;
+    }
+
+    .flip-page.flipped .front-page {
+      transform: rotateY(-180deg);
+      pointer-events: none;
+    }
+
+    .flip-page.flipped .back-page {
+      transform: rotateY(0deg);
+      pointer-events: all;
+    }
+
+    .paper {
+      width: calc(100% - 2%);
+      height: calc(100% - 4%);
+      margin-top: 2%;
+      padding: clamp(1rem, 2vw, 1.6rem);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.82), transparent 34%),
+        linear-gradient(135deg, #fffaf0, #eadcc4);
+      border: 1px solid #c7bebc;
+      font-size: clamp(0.82rem, 1.05vw, 1.02rem);
+      line-height: 1.58;
+    }
+
+    .back-page .paper {
+      margin-left: 2%;
+      box-shadow: inset -7px 0 30px -7px #00000066, -10px 10px 15px #0000001f;
+    }
+
+    .front-page .paper {
+      margin-right: 2%;
+      box-shadow: inset 7px 0 30px -7px #00000066, 10px 10px 15px #0000001f;
+    }
+
+    .paper h1,
+    .paper h2,
+    .paper h3,
+    .paper p,
+    .paper ul {
+      margin: 0 0 0.75rem;
+    }
+
+    .paper h1 {
+      font-size: clamp(1.55rem, 2.5vw, 2.25rem);
+      color: #423927;
+    }
+
+    .paper h2 {
+      font-size: clamp(1.22rem, 2vw, 1.65rem);
+      color: #5f5138;
+    }
+
+    .dialog {
+      margin-top: 0.85rem;
+      padding: 0.7rem 0.85rem;
+      border-left: 4px solid #a58f66;
+      background: rgba(217, 194, 150, 0.28);
+    }
+
+    .dialog strong {
+      display: block;
+      color: #423927;
+    }
+
+    .flip-page.cover-page .front-page,
+    .flip-page.cover-page .back-page {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      border: 0;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .flip-page.cover-page .front-page {
+      border-radius: 0 8px 8px 0;
+      box-shadow: inset 0 0 30px #240a0380, 20px 0 20px #00000030;
+    }
+
+    .flip-page.cover-page .back-page {
+      border-radius: 8px 0 0 8px;
+      box-shadow: inset 0 0 30px #240a0380, 20px 9px 20px 10px #000000b3;
+    }
+
+    .flip-page.cover-page.front .front-page {
+      box-shadow: inset 0 0 30px #240a0380, -20px 9px 20px 10px #000000b3;
+    }
+
+    .flip-page.cover-page.front .back-page {
+      background-image: var(--inner-cover, url("public/images/cover-back.jpg")) !important;
+      box-shadow: inset 0 0 30px #240a0380, -20px 0 20px #00000030;
+    }
+
+    .flip-page.cover-page:not(.front) .front-page {
+      background-image: var(--inner-cover, url("public/images/cover-back.jpg")) !important;
+    }
+
+    @media (max-width: 760px) {
+      .book-frame {
+        padding: 1rem;
+      }
+
+      .page-wrapper {
+        width: min(88vw, 560px, calc((100svh - 2rem) * 1.42));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .book-frame {
+        align-items: center;
+        padding: 0.65rem;
+      }
+
+      .page-wrapper {
+        left: -34vw;
+        width: min(168vw, 680px, calc((100svh - 1.3rem) * 1.42));
+        max-width: none;
+        filter: drop-shadow(0 18px 22px rgba(24, 10, 4, 0.42));
+        transition:
+          left 420ms ease,
+          width 420ms ease;
+      }
+
+      .page-wrapper.is-open-spread {
+        left: 0;
+        width: min(92vw, calc((100svh - 1.3rem) * 1.32));
+        max-width: 100%;
+      }
+
+      .paper {
+        padding: clamp(0.55rem, 3vw, 0.9rem);
+        font-size: clamp(0.62rem, 2.6vw, 0.82rem);
+        line-height: 1.42;
+      }
+
+      .paper h1 {
+        font-size: clamp(1.05rem, 5.8vw, 1.45rem);
+      }
+
+      .paper h2 {
+        font-size: clamp(0.92rem, 4.8vw, 1.18rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="book-frame" aria-label="Libro interactivo">
+    <div id="pageWrapper" class="page-wrapper" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const pageWrapper = document.getElementById("pageWrapper");
+    const requestedBook = new URLSearchParams(window.location.search).get("book") || "notes";
+    const bookLibrary = {
+      notes: {
+        cover: "../images/portada 3.webp",
+        backCover: "../images/CONTRAPORTADA 3.webp",
+        title: "Notes",
+        intro: "Concepto editorial y grafica impresa.",
+        pages: [
+          {
+            front: `<h1>Notes</h1><p><em>Concepto editorial</em> para composiciones impresas, jerarquias limpias y una lectura visual elegante.</p><p>Este libro queda preparado para reunir muestras, notas de proceso y piezas finales.</p>`,
+            back: `<h2>Sistema visual</h2><p><strong>Editorial, print y layout.</strong> Usa esta pagina para documentar estructura, composicion, reticula y decisiones de estilo.</p><ul><li>Portadas</li><li>Mockups</li><li>Aplicaciones impresas</li></ul>`
+          },
+          {
+            front: `<h2>Detalle</h2><p>Espacio para explicar el concepto, la paleta, el ritmo visual y la intencion del proyecto.</p>`,
+            back: `<h3>Notas de proyecto</h3><p>Cambia este contenido cuando agregues las piezas definitivas de Notes.</p><div class="dialog"><strong>Albby</strong><span>Una presentacion editorial clara hace que cada pieza respire mejor.</span></div>`
+          },
+          {
+            front: `<h2>Cierre</h2><p>Este bloque puede servir como resumen del proyecto, creditos o variantes visuales.</p>`,
+            back: `<h2>Proximamente</h2><p>Contenido listo para sustituirse por paginas reales del proyecto creativo.</p>`
+          }
+        ]
+      },
+      workspace: {
+        cover: "../images/portada 1.webp",
+        innerCover: "../images/cover 1.webp",
+        backCover: "../images/parte tracera 1.webp",
+        title: "Creative Desk",
+        intro: "Mood visual para herramientas digitales.",
+        pages: [
+          {
+            front: `<h1>Creative Desk</h1><p><em>Un mood visual</em> para comunicar diseno, tecnologia y flujo creativo con una presencia moderna.</p><p>Este libro puede alojar capturas, composiciones, recursos y exploraciones de estilo.</p>`,
+            back: `<h2>Direccion visual</h2><p><strong>Digital, composicion y atmosfera.</strong> Guarda aqui las decisiones de tono, forma, color y textura.</p><ul><li>Escenarios digitales</li><li>Herramientas creativas</li><li>Recursos graficos</li></ul>`
+          },
+          {
+            front: `<h2>Proceso</h2><p>Pagina pensada para bocetos, referencias visuales y notas de construccion del universo creativo.</p>`,
+            back: `<h3>Idea central</h3><p>Una mesa de trabajo puede convertirse en una narrativa visual completa.</p><div class="dialog"><strong>Albby</strong><span>Orden, textura y foco: tres claves para una pieza digital memorable.</span></div>`
+          },
+          {
+            front: `<h2>Aplicaciones</h2><p>Usa estas paginas para mostrar posts, mockups, interfaces o piezas experimentales.</p>`,
+            back: `<h2>Proximamente</h2><p>Contenido listo para sustituirse por paginas reales de Creative Desk.</p>`
+          }
+        ]
+      },
+      "visual-chronicles": {
+        cover: "../images/PORTADA 2.webp",
+        backCover: "../images/CONTRAPORTADA 2.webp",
+        title: "Cronicas Visuales",
+        intro: "Libro visual de composiciones y atmosferas.",
+        pages: [
+          {
+            front: `<h1>Cronicas Visuales</h1><p><em>Exploracion editorial</em> de portadas, escenas y recursos graficos con una narrativa visual cinematografica.</p><p>Este libro puede funcionar como una coleccion de atmosferas.</p>`,
+            back: `<h2>Narrativa</h2><p><strong>Portadas, ilustracion y composicion.</strong> Construye aqui una secuencia de imagenes que cuenten una historia.</p><ul><li>Escenas</li><li>Texturas</li><li>Capitulos visuales</li></ul>`
+          },
+          {
+            front: `<h2>Atmosfera</h2><p>Pagina para estudiar luz, contraste, ritmo y peso visual de cada composicion.</p>`,
+            back: `<h3>Bitacora</h3><p>Cada pieza puede tener una nota corta sobre su intencion grafica.</p><div class="dialog"><strong>Albby</strong><span>Una cronica visual no solo muestra: tambien sugiere una historia.</span></div>`
+          },
+          {
+            front: `<h2>Serie</h2><p>Usa esta seccion para agrupar versiones, portadas alternativas o escenas finales.</p>`,
+            back: `<h2>Proximamente</h2><p>Contenido listo para sustituirse por paginas reales de Cronicas Visuales.</p>`
+          }
+        ]
+      }
+    };
+    const activeBook = bookLibrary[requestedBook] || bookLibrary.notes;
+    document.title = `Libro - ${activeBook.title}`;
+    const pages = [
+      { cover: activeBook.cover, innerCover: activeBook.innerCover, frontCover: true },
+      ...activeBook.pages,
+      { cover: activeBook.backCover || activeBook.cover, innerCover: activeBook.innerCover }
+    ];
+
+    const flippedStates = new Array(pages.length).fill(false);
+    const zIndices = pages.map((_, index) => pages.length - index + 1);
+    let isCooldown = false;
+
+    function updateBookState() {
+      const onFirstPage = !flippedStates[0];
+      const onLastPage = flippedStates[pages.length - 1];
+
+      pageWrapper.classList.toggle("is-open-spread", !onFirstPage && !onLastPage);
+
+      pageWrapper.querySelectorAll(".flip-page").forEach((page, index) => {
+        page.classList.toggle("flipped", flippedStates[index]);
+        page.classList.toggle("first-page", onFirstPage);
+        page.classList.toggle("last-page", onLastPage);
+        page.style.zIndex = zIndices[index];
+      });
+    }
+
+    function flipPage(index) {
+      if (isCooldown) return;
+      isCooldown = true;
+      setTimeout(() => {
+        isCooldown = false;
+      }, 520);
+
+      const page = pages[index];
+      const willFlip = !flippedStates[index];
+      zIndices[index] = Math.max(...zIndices) + 1;
+      flippedStates[index] = willFlip;
+
+      updateBookState();
+    }
+
+    function buildPage(page, index) {
+      const el = document.createElement("section");
+      el.className = "flip-page";
+      if (page.cover) el.classList.add("cover-page");
+      if (page.frontCover) el.classList.add("front");
+      el.style.zIndex = zIndices[index];
+
+      const back = document.createElement("div");
+      back.className = "back-page";
+      back.addEventListener("click", () => flipPage(index));
+
+      const front = document.createElement("div");
+      front.className = "front-page";
+      front.addEventListener("click", () => flipPage(index));
+
+      if (page.cover) {
+        const coverUrl = `url("${page.cover}")`;
+        const innerCoverUrl = `url("${page.innerCover || activeBook.innerCover || "public/images/cover-back.jpg"}")`;
+        el.style.setProperty("--inner-cover", innerCoverUrl);
+        back.style.backgroundImage = coverUrl;
+        front.style.backgroundImage = coverUrl;
+      } else {
+        back.innerHTML = `<article class="paper">${page.back || ""}</article>`;
+        front.innerHTML = `<article class="paper">${page.front || ""}</article>`;
+      }
+
+      el.append(back, front);
+      return el;
+    }
+
+    pages.forEach((page, index) => pageWrapper.appendChild(buildPage(page, index)));
+    updateBookState();
+  </script>
+</body>
+</html>
